@@ -32,7 +32,7 @@ def test_ekf_cr3bp():
     meas_model = rd.MeasurementPosition()
 
     # initialize EKF
-    params_Q = [1e-2,]
+    params_Q = [1e-6,]
     filter = rd.ExtendedKalmanFilter(dynamics, meas_model,
                                      func_process_noise = rd.unbiased_random_process_3dof,
                                      params_Q = params_Q,)
@@ -40,7 +40,7 @@ def test_ekf_cr3bp():
     
     # initial state estimate
     sigma_r0 = 100 / LU
-    sigma_v0 = 0.01 / VU
+    sigma_v0 = 0.001 / VU
     x0hat = x0 + np.array([sigma_r0]*3 + [sigma_v0]*3) * np.random.normal(0, 1, 6)
     P0 = np.diag([sigma_r0]*3 + [sigma_v0]*3)**2
 
@@ -49,7 +49,7 @@ def test_ekf_cr3bp():
 
     # measurement frequency and simulation function
     sigma_r = 100 / LU
-    t_measurements = np.linspace(0, 3 * period, 6)[1:]
+    t_measurements = np.linspace(0.05, 3 * period, 6)
     def func_simulate_measurements(t,x):
         y = x[0:3] + np.random.normal(0, sigma_r, 3)
         R = sigma_r**2 * np.eye(3)

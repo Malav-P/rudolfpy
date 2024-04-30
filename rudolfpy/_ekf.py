@@ -5,6 +5,14 @@ import numpy as np
 from ._base_filter import BaseFilter
 
 class ExtendedKalmanFilter(BaseFilter):
+    """Extended Kalman Filter object
+    
+    Args:
+        dynamics (Dynamics): dynamics object
+        measurement_model (Measurement): measurement object
+        func_process_noise (func): function for process noisem, with signature `Q = func(tspan, x, params_Q)`
+        params_Q (list): list of parameters for process noise function
+    """
     def __init__(
         self,
         dynamics,

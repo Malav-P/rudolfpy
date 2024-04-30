@@ -6,6 +6,7 @@ hard_dependencies = (
     "matplotlib",
     "numba",
     "scipy",
+    "tqdm",
 )
 missing_dependencies = []
 
