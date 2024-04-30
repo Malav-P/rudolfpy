@@ -98,6 +98,7 @@ class Recursor:
         color_true = "black",
         TU = 1.0,
         state_multipliers = None,
+        state_labels = None,
         time_unit = "TU",
     ):
         """Plot error history of state estimate"""
@@ -106,12 +107,17 @@ class Recursor:
             state_multipliers = np.zeros(self.nx)
         else:
             assert len(state_multipliers) == self.nx, "state_multipliers must have length equal to state vector"
+        if state_labels is None:
+            state_labels = [f"State {i}" for i in range(self.nx)]
+        else:
+            assert len(state_labels) == self.nx, "state_labels must have length equal to state vector"
 
         # initialize figure 
         fig, axs = plt.subplots(2,nx_half,figsize=figsize)
-        for ax in axs.flatten():
+        for iax,ax in enumerate(axs.flatten()):
             ax.grid(True, alpha=0.3)
             ax.set_xlabel(f"Time, {time_unit}")
+            ax.set_ylabel(state_labels[iax])
 
         # plot estimate and true history
         for (sol_true, sol_estim) in zip(self.sols_true, self.sols_estim):
@@ -151,6 +157,7 @@ class Recursor:
         alpha_sigma = 0.3,
         TU = 1.0,
         state_multipliers = None,
+        state_labels = None,
         time_unit = "TU",
         k_sigma = 3,
     ):
@@ -160,12 +167,17 @@ class Recursor:
             state_multipliers = np.zeros(self.nx)
         else:
             assert len(state_multipliers) == self.nx, "state_multipliers must have length equal to state vector"
+        if state_labels is None:
+            state_labels = [f"State {i}" for i in range(self.nx)]
+        else:
+            assert len(state_labels) == self.nx, "state_labels must have length equal to state vector"
 
         # initialize figure 
         fig, axs = plt.subplots(2,nx_half,figsize=figsize)
-        for ax in axs.flatten():
+        for iax,ax in enumerate(axs.flatten()):
             ax.grid(True, alpha=0.3)
             ax.set_xlabel(f"Time, {time_unit}")
+            ax.set_ylabel(state_labels[iax])
 
         # plot estimate error history
         for (sol_true, sol_estim, P_estim) in zip(self.sols_true, self.sols_estim, self.Ps_update):

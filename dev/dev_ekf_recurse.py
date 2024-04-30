@@ -70,12 +70,16 @@ def test_ekf_cr3bp():
         TU = TU/86400,
         time_unit = "day",
         state_multipliers = [LU,LU,LU,VU,VU,VU],
+        state_labels = ["$x$, km","$y$, km","$z$, km",
+                        "$v_x$, km/s","$v_y$, km/s","$v_z$, km/s"],
     )
 
     fig, axs = recursor.plot_error_history(
         TU = TU/86400,
         time_unit = "day",
-        state_multipliers = [LU,LU,LU,VU,VU,VU],
+        state_multipliers = [LU,LU,LU,1e3*VU,1e3*VU,1e3*VU],
+        state_labels = ["$\delta x$, km","$\delta y$, km","$\delta z$, km",
+                        "$\delta v_x$, m/s","$\delta v_y$, m/s","$\delta v_z$, m/s"],
     )
     return
 
