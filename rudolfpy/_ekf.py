@@ -1,0 +1,71 @@
+"""EKF object"""
+
+import numpy as np
+
+from ._base_filter import BaseFilter
+
+class ExtendedKalmanFilter(BaseFilter):
+    def __init__(
+        self,
+        dynamics,
+        measurement_model,
+        func_process_noise,
+        params_Q,
+    ):
+        super().__init__(
+            dynamics = dynamics,
+            measurement_model = measurement_model,
+            func_process_noise = func_process_noise,
+            params_Q = params_Q,
+        )
+        self.name = "ExtendedKalmanFilter"
+        return
+
+    def summary(self):
+        print(f" ************** {self.name} summary ************** ")
+        print(f"   Dynamics model : {self.dynamics.rhs.__name__}")
+        print(f"   Process noise model : {self.func_process_noise.__name__}")
+        return
+    
+    def predict(self, tspan, t_eval = None):
+        """Perform time prediction
+        
+        Args:
+            tspan (tuple): time span for prediction
+            t_eval (np.ndarray): time points to evaluate solution
+        
+        Returns:
+            (ODESolution): solution object (state and STM)
+        """
+        # perform prediction of state
+        sol_stm = self.dynamics.solve(tspan, self._x, stm=True, t_eval = t_eval)
+        self._x = sol_stm.y[:6,-1]                                    # propagate state
+        Phi = sol_stm.y[6:, -1].reshape(6,6)
+        Q = self.func_process_noise(tspan, self.x, self.params_Q)     # process noise
+        self._P = Phi @ self._P @ Phi.T + Q                           # propagate covariance
+        self._t += tspan[1] - tspan[0]                                # propagate time
+        return sol_stm
+    
+    def update(self, y, R):
+        """Perform measurement update
+        
+        Args:
+            y (np.ndarray): measurement vector
+            R (np.ndarray): measurement covariance matrix
+
+        Returns:
+            (tuple): innovation, innovation covariance, Kalman gain
+        """
+        m = len(y)
+        assert R.shape == (m, m), f"R must be of shape ({m},{m})"
+        # prediction of measurement and measurement partials
+        h = self.measurement_model.predict_measurement(self._t, self._x)
+        H = self.measurement_model.measurement_partials(self._t, self._x)
+
+        # perform measurement update
+        ytilde = y - h                                                                 # innovation
+        S = H @ self._P @ H.T + R                                                      # innovation covariance
+        K = self._P @ H.T @ np.linalg.inv(S)                                           # Kalman gain
+        self._x = self._x + K @ ytilde                                                 # update state estimate
+        self._P = (np.eye(6) - K @ H) @ self._P @ (np.eye(6) - K @ H).T + K @ R @ K.T  # Joseph update
+        return ytilde, S, K

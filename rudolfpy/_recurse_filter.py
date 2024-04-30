@@ -1,0 +1,212 @@
+"""Object for recursing filter"""
+
+import copy
+import numpy as np
+import matplotlib.pyplot as plt
+from tqdm.auto import tqdm
+
+
+class Recursor:
+    """Object for performing recursive simulation of filter"""
+    def __init__(
+        self,
+        filter,
+    ):
+        self.filter = filter 
+        return
+    
+    def _initialize_filter(self, t0, x0_estim, P0):
+        self.filter.t = t0         # set initial time
+        self.filter.x = x0_estim   # set initial state estimate
+        self.filter.P = P0         # set initial state covariance matrix
+        return
+    
+    def _initialize_storage(self):
+        self.sols_estim = []
+        self.sols_true  = []
+        self.ts_update   = []
+        self.xs_update   = []
+        self.Ps_update   = []
+        return
+    
+    def recurse_measurements_func(
+        self,
+        tspan,
+        x0_true,
+        x0_estim,
+        P0,
+        t_measurements,
+        func_simulate_measurements,
+    ):
+        """Recurse from a function that generates measurements
+        
+        Args:
+            func_simulate_ measurements (func): function to simulate measurements, with signature `y, R = func(t, x)`
+        """
+        self._initialize_storage()
+        self._initialize_filter(tspan[0], x0_estim, P0)
+        self.nx = len(x0_estim)
+
+        # initial storage
+        self.ts_update.append(self.filter.t)
+        self.xs_update.append(self.filter.x)
+        self.Ps_update.append(self.filter.P)
+
+        # iterate over measurement times
+        for i,t_meas in tqdm(enumerate(t_measurements), total=len(t_measurements)):
+            # predict until next measurement time
+            tspan_i = [self.filter.t, t_meas]
+            sol_estim = self.filter.predict(tspan_i)
+
+            # also propagte true state until next measurement time
+            sol_true = self.filter.dynamics.solve(tspan_i, x0_true, stm=False, t_eval = sol_estim.t)
+            x0_true = sol_true.y[:self.nx,-1]
+
+            # simulate measurement
+            y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1])
+
+            # perform measurement update
+            self.filter.update(y, R)
+
+            # store information from this iteration
+            self.sols_estim.append(sol_estim)
+            self.sols_true.append(sol_true)
+            self.xs_update.append(copy.deepcopy(self.filter.x))
+            self.Ps_update.append(copy.deepcopy(self.filter.P))
+        return
+    
+    def recurse_measurements_list(
+        self,
+        tspan,
+        x0_true,
+        x0_estim,
+        P0,
+        t_measurements,
+        y_measurements,
+        R_measurements,
+    ):
+        """Recurse from a given list of measurements"""
+        self._initialize_storage()
+        self._initialize_filter(tspan[0], x0_estim, P0)
+        raise NotImplementedError
+    
+    def plot_state_history(
+        self,
+        figsize = (12,6),
+        lw_estimate = 0.95,
+        color_estimate = "crimson",
+        color_true = "black",
+        TU = 1.0,
+        state_multipliers = None,
+        time_unit = "TU",
+    ):
+        """Plot error history of state estimate"""
+        nx_half = self.nx//2
+        if state_multipliers is None:
+            state_multipliers = np.zeros(self.nx)
+        else:
+            assert len(state_multipliers) == self.nx, "state_multipliers must have length equal to state vector"
+
+        # initialize figure 
+        fig, axs = plt.subplots(2,nx_half,figsize=figsize)
+        for ax in axs.flatten():
+            ax.grid(True, alpha=0.3)
+            ax.set_xlabel(f"Time, {time_unit}")
+
+        # plot estimate and true history
+        for (sol_true, sol_estim) in zip(self.sols_true, self.sols_estim):
+            ts = sol_true.t
+            x_true = sol_true.y[:self.nx,:]
+            x_estim = sol_estim.y[:self.nx,:]
+
+            # plot estimates
+            for i in range(nx_half):
+                axs[0,i].plot(ts * TU,
+                              state_multipliers[i] * x_true[i,:],
+                              color = color_true,
+                              lw = lw_estimate)
+                axs[1,i].plot(ts * TU, 
+                              state_multipliers[i+3] * x_true[i+nx_half,:],
+                              color = color_true,
+                              lw = lw_estimate)
+                
+                axs[0,i].plot(ts * TU,
+                              state_multipliers[i] * x_estim[i,:],
+                              color = color_estimate,
+                              lw = lw_estimate)
+                axs[1,i].plot(ts * TU, 
+                              state_multipliers[i+3] * x_estim[i+nx_half,:],
+                              color= color_estimate,
+                              lw = lw_estimate)
+        plt.tight_layout()
+        return fig, axs
+    
+    
+    def plot_error_history(
+        self,
+        figsize = (12,6),
+        lw_estimate = 0.95,
+        color_estimate = "crimson",
+        color_sigma = "navy",
+        alpha_sigma = 0.3,
+        TU = 1.0,
+        state_multipliers = None,
+        time_unit = "TU",
+        k_sigma = 3,
+    ):
+        """Plot error history of state estimate"""
+        nx_half = self.nx//2
+        if state_multipliers is None:
+            state_multipliers = np.zeros(self.nx)
+        else:
+            assert len(state_multipliers) == self.nx, "state_multipliers must have length equal to state vector"
+
+        # initialize figure 
+        fig, axs = plt.subplots(2,nx_half,figsize=figsize)
+        for ax in axs.flatten():
+            ax.grid(True, alpha=0.3)
+            ax.set_xlabel(f"Time, {time_unit}")
+
+        # plot estimate error history
+        for (sol_true, sol_estim, P_estim) in zip(self.sols_true, self.sols_estim, self.Ps_update):
+            ts = sol_true.t
+            x_true = sol_true.y[:self.nx,:]
+            x_estim = sol_estim.y[:self.nx,:]
+
+            # a posteriori computation of covariance history
+            std_diag = np.zeros((len(ts), self.nx))
+            for (idx, (t,y)) in enumerate(zip(sol_estim.t, sol_estim.y.T)):
+                if idx == 0:
+                    dt = [0.0, 0.0]
+                else:
+                    dt = [sol_estim.t[idx-1], t]
+                Phi_iter = y[self.nx:].reshape(self.nx,self.nx)
+                Q_iter = self.filter.func_process_noise(dt, y, self.filter.params_Q)
+                P_iter = Phi_iter @ P_estim @ Phi_iter.T + Q_iter
+                std_diag[idx,:] = np.sqrt(np.diag(P_iter))
+
+            # plot estimates
+            for i in range(nx_half):
+                # plot k_sigma bands
+                axs[0,i].fill_between(ts * TU,
+                                     state_multipliers[i] * (-k_sigma * std_diag[:,i]),
+                                     state_multipliers[i] * ( k_sigma * std_diag[:,i]),
+                                     color=color_sigma,
+                                     alpha=alpha_sigma)
+                axs[1,i].fill_between(ts * TU,
+                                      state_multipliers[i+3] * (-k_sigma * std_diag[:,i+nx_half]),
+                                      state_multipliers[i+3] * ( k_sigma * std_diag[:,i+nx_half]),
+                                      color=color_sigma,
+                                      alpha=alpha_sigma)
+                
+                # plot errors
+                axs[0,i].plot(ts * TU,
+                              state_multipliers[i] * (x_estim[i,:] - x_true[i,:]),
+                              color=color_estimate,
+                              lw = lw_estimate)
+                axs[1,i].plot(ts * TU, 
+                              state_multipliers[i+3] * (x_estim[i+nx_half,:] - x_true[i+3,:]),
+                              color=color_estimate,
+                              lw = lw_estimate)
+        plt.tight_layout()
+        return fig, axs
