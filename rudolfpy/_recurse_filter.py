@@ -40,6 +40,7 @@ class Recursor:
         P0,
         t_measurements: list,
         func_simulate_measurements: callable,
+        disable_tqdm = True,
     ):
         """Recurse from a function that generates measurements
         
@@ -63,7 +64,9 @@ class Recursor:
         self.Ps_update   = [self.filter.P,]
 
         # iterate over measurement times
-        for i,t_meas in tqdm(enumerate(t_measurements), total=len(t_measurements)):
+        for i,t_meas in tqdm(enumerate(t_measurements), total=len(t_measurements),
+            disable = disable_tqdm,
+        ):
             # predict until next measurement time
             tspan_i = [self.filter.t, min(t_meas, tspan[1])]
 
@@ -74,10 +77,6 @@ class Recursor:
                 # also propagte true state until next measurement time
                 sol_true = self.filter.dynamics.solve(tspan_i, x0_true, stm=False, t_eval = sol_estim.t)
                 x0_true = sol_true.y[:self.nx,-1]
-
-            # break if final time is exceeded
-            if self.filter.t >= tspan[1]:
-                break
 
             # simulate measurement
             y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1])
@@ -90,6 +89,10 @@ class Recursor:
             self.sols_true.append(sol_true)
             self.xs_update.append(copy.deepcopy(self.filter.x))
             self.Ps_update.append(copy.deepcopy(self.filter.P))
+
+            # break if final time is exceeded
+            if self.filter.t >= tspan[1]:
+                break
 
         # perform final prediction if final measurement is not at final time
         if self.filter.t < tspan[1]:
@@ -108,6 +111,7 @@ class Recursor:
         t_measurements: list,
         y_measurements: list,
         R_measurements: list,
+        disable_tqdm = True,
     ):
         """Recurse from a given list of measurements
         
@@ -136,7 +140,8 @@ class Recursor:
         # iterate over measurement times
         for i,(t_meas,y,R) in tqdm(
             enumerate(zip(t_measurements, y_measurements, R_measurements)),
-            total=len(t_measurements)
+            total=len(t_measurements),
+            disable=disable_tqdm,
         ):
             # predict until next measurement time
             tspan_i = [self.filter.t, min(t_meas, tspan[1])]
@@ -149,10 +154,6 @@ class Recursor:
                 sol_true = self.filter.dynamics.solve(tspan_i, x0_true, stm=False, t_eval = sol_estim.t)
                 x0_true = sol_true.y[:self.nx,-1]
 
-            # break if final time is exceeded
-            if self.filter.t >= tspan[1]:
-                break
-
             # perform measurement update
             self.filter.update(y, R)
 
@@ -161,6 +162,10 @@ class Recursor:
             self.sols_true.append(sol_true)
             self.xs_update.append(copy.deepcopy(self.filter.x))
             self.Ps_update.append(copy.deepcopy(self.filter.P))
+
+            # break if final time is exceeded
+            if self.filter.t >= tspan[1]:
+                break
 
         # perform final prediction if final measurement is not at final time
         if self.filter.t < tspan[1]:
