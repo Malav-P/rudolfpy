@@ -50,10 +50,6 @@ def test_ekf_cr3bp():
     # measurement frequency and simulation function
     sigma_r = 100 / LU
     t_measurements = np.linspace(0.05, 3 * period, 6)
-    def func_simulate_measurements(t,x):
-        y = x[0:3] + np.random.normal(0, sigma_r, 3)
-        R = sigma_r**2 * np.eye(3)
-        return y, R
 
     # perform recursion
     recursor.recurse_measurements_func(
@@ -62,7 +58,8 @@ def test_ekf_cr3bp():
         x0hat,
         P0,
         t_measurements,
-        func_simulate_measurements
+        rd.func_simulate_measurements,
+        params_measurements = [sigma_r for _ in t_measurements]
     )
 
     # plot recursion results

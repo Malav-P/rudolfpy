@@ -54,7 +54,7 @@ class ExtendedKalmanFilter(BaseFilter):
         self._t += tspan[1] - tspan[0]                                # propagate time
         return sol_stm
     
-    def update(self, y, R):
+    def update(self, y, R, params = None):
         """Perform measurement update
         
         Args:
@@ -67,9 +67,13 @@ class ExtendedKalmanFilter(BaseFilter):
         m = len(y)
         assert R.shape == (m, m), f"R must be of shape ({m},{m})"
         # prediction of measurement and measurement partials
-        h = self.measurement_model.predict_measurement(self._t, self._x)
-        H = self.measurement_model.measurement_partials(self._t, self._x)
-
+        if params is None:
+            h = self.measurement_model.predict_measurement(self._t, self._x)
+            H = self.measurement_model.measurement_partials(self._t, self._x)
+        else:
+            h = self.measurement_model.predict_measurement(self._t, self._x, params)
+            H = self.measurement_model.measurement_partials(self._t, self._x, params)
+            
         # perform measurement update
         ytilde = y - h                                                                 # innovation
         S = H @ self._P @ H.T + R                                                      # innovation covariance

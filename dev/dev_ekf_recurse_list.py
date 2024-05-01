@@ -17,7 +17,7 @@ def test_ekf_cr3bp():
     TU = 382981
     VU = LU / TU
     dynamics = rd.DynamicsCR3BP(mu = mu, method='DOP853', rtol = 1e-12, atol = 1e-12)
-
+    
     # initial state, propagation time
     x0 = np.array([1.0809931218390707E+00,
           0.0000000000000000E+00,

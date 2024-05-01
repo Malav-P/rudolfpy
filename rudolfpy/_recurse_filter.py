@@ -40,6 +40,7 @@ class Recursor:
         P0,
         t_measurements: list,
         func_simulate_measurements: callable,
+        params_measurements: list = None,
         disable_tqdm = True,
     ):
         """Recurse from a function that generates measurements
@@ -54,6 +55,8 @@ class Recursor:
         """
         assert len(tspan) == 2, "tspan must have length 2"
         assert len(x0_true) == len(x0_estim), "x0_true and x0_estim must have same length"
+        if params_measurements is not None:
+            assert len(params_measurements) == len(t_measurements), "params_measurements and t_measurements must have same length"
         self._initialize_storage()
         self._initialize_filter(tspan[0], x0_estim, P0)
         self.nx = len(x0_estim)
@@ -79,7 +82,10 @@ class Recursor:
                 x0_true = sol_true.y[:self.nx,-1]
 
             # simulate measurement
-            y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1])
+            if params_measurements is None:
+                y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1])
+            else:
+                y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1], params_measurements[i])
 
             # perform measurement update
             self.filter.update(y, R)
@@ -111,6 +117,7 @@ class Recursor:
         t_measurements: list,
         y_measurements: list,
         R_measurements: list,
+        params_measurements: list = None,
         disable_tqdm = True,
     ):
         """Recurse from a given list of measurements
@@ -128,6 +135,10 @@ class Recursor:
         assert len(x0_true) == len(x0_estim), "x0_true and x0_estim must have same length"
         assert len(t_measurements) == len(y_measurements), "t_measurements and y_measurements must have same length"
         assert len(t_measurements) == len(R_measurements), "t_measurements and R_measurements must have same length"
+        if params_measurements is None:
+            params_measurements = [None for _ in t_measurements]
+        else:
+            assert len(t_measurements) == len(params_measurements), "t_measurements and params_measurements must have same length"
         self._initialize_storage()
         self._initialize_filter(tspan[0], x0_estim, P0)
         self.nx = len(x0_estim)
@@ -155,7 +166,7 @@ class Recursor:
                 x0_true = sol_true.y[:self.nx,-1]
 
             # perform measurement update
-            self.filter.update(y, R)
+            self.filter.update(y, R, params_measurements[i])
 
             # store information from this iteration
             self.sols_estim.append(sol_estim)
