@@ -8,6 +8,7 @@ class MeasurementAngle(BaseMeasurement):
     """Angle (line-of-sight) measurement object relative to an observer"""
     def __init__(self):
         super().__init__()
+        self.name = "Angle"
         return
     
     def predict_measurement(self, t, x, r_observer):
@@ -49,6 +50,7 @@ class MeasurementAngleAngleRate(BaseMeasurement):
     """Angle (line-of-sight) and angle-rate measurement object relative to an observer"""
     def __init__(self):
         super().__init__()
+        self.name = "Angle_AngleRate"
         return
 
     def predict_measurement(self, t, x, x_observer):
@@ -58,7 +60,7 @@ class MeasurementAngleAngleRate(BaseMeasurement):
             t (float): time
             x (np.ndarray): state vector
             r_observer (np.ndarray): observer position vector
-
+        
         Returns:
             (np.ndarray): measurement prediction
         """

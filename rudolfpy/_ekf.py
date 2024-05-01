@@ -33,6 +33,7 @@ class ExtendedKalmanFilter(BaseFilter):
         print(f" ************** {self.name} summary ************** ")
         print(f"   Dynamics model : {self.dynamics.rhs.__name__}")
         print(f"   Process noise model : {self.func_process_noise.__name__}")
+        print(f"   Measurement model : {self.measurement_model.name}")
         return
     
     def predict(self, tspan, t_eval = None):

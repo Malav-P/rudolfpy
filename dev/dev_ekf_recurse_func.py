@@ -59,7 +59,7 @@ def test_ekf_cr3bp():
         P0,
         t_measurements,
         rd.func_simulate_measurements,
-        params_measurements = [sigma_r for _ in t_measurements]
+        params_measurements = [(sigma_r,) for _ in t_measurements]
     )
 
     # plot recursion results

@@ -2,6 +2,7 @@
 
 class BaseMeasurement:
     def __init__(self):
+        self.name = "BaseMeasurement"
         return
     
     def predict_measurement(self, t, x):
