@@ -7,7 +7,13 @@ from tqdm.auto import tqdm
 
 
 class Recursor:
-    """Object for performing recursive simulation of filter"""
+    """Object for performing recursive simulation of filter.
+    
+    There are two main approaches to perform recursion:
+    
+    1. `recurse_measurements_func`: Recurse from a function that generates measurements
+    2. `recurse_measurements_list`: Recurse from a given list of measurements
+    """
     def __init__(
         self,
         filter,
@@ -24,9 +30,6 @@ class Recursor:
     def _initialize_storage(self):
         self.sols_estim = []
         self.sols_true  = []
-        self.ts_update   = []
-        self.xs_update   = []
-        self.Ps_update   = []
         return
     
     def recurse_measurements_func(
@@ -35,32 +38,46 @@ class Recursor:
         x0_true,
         x0_estim,
         P0,
-        t_measurements,
-        func_simulate_measurements,
+        t_measurements: list,
+        func_simulate_measurements: callable,
     ):
         """Recurse from a function that generates measurements
         
         Args:
+            tspan (list): time span for recursion
+            x0_true (np.array): true initial state
+            x0_estim (np.array): initial state estimate
+            P0 (np.array): initial state covariance matrix
+            t_measurements (np.array): measurement times
             func_simulate_ measurements (func): function to simulate measurements, with signature `y, R = func(t, x)`
         """
+        assert len(tspan) == 2, "tspan must have length 2"
+        assert len(x0_true) == len(x0_estim), "x0_true and x0_estim must have same length"
         self._initialize_storage()
         self._initialize_filter(tspan[0], x0_estim, P0)
         self.nx = len(x0_estim)
 
-        # initial storage
-        self.ts_update.append(self.filter.t)
-        self.xs_update.append(self.filter.x)
-        self.Ps_update.append(self.filter.P)
+        # store initial state
+        self.ts_update   = [self.filter.t,]
+        self.xs_update   = [self.filter.x,]
+        self.Ps_update   = [self.filter.P,]
 
         # iterate over measurement times
         for i,t_meas in tqdm(enumerate(t_measurements), total=len(t_measurements)):
             # predict until next measurement time
-            tspan_i = [self.filter.t, t_meas]
-            sol_estim = self.filter.predict(tspan_i)
+            tspan_i = [self.filter.t, min(t_meas, tspan[1])]
 
-            # also propagte true state until next measurement time
-            sol_true = self.filter.dynamics.solve(tspan_i, x0_true, stm=False, t_eval = sol_estim.t)
-            x0_true = sol_true.y[:self.nx,-1]
+            if tspan_i[1] > tspan_i[0]:
+                # predict state estimate
+                sol_estim = self.filter.predict(tspan_i)
+
+                # also propagte true state until next measurement time
+                sol_true = self.filter.dynamics.solve(tspan_i, x0_true, stm=False, t_eval = sol_estim.t)
+                x0_true = sol_true.y[:self.nx,-1]
+
+            # break if final time is exceeded
+            if self.filter.t >= tspan[1]:
+                break
 
             # simulate measurement
             y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1])
@@ -73,6 +90,13 @@ class Recursor:
             self.sols_true.append(sol_true)
             self.xs_update.append(copy.deepcopy(self.filter.x))
             self.Ps_update.append(copy.deepcopy(self.filter.P))
+
+        # perform final prediction if final measurement is not at final time
+        if self.filter.t < tspan[1]:
+            tspan_final = [self.filter.t, tspan[1]]
+            sol_estim = self.filter.predict(tspan_final)
+            self.sols_estim.append(sol_estim)
+            self.sols_true.append(self.filter.dynamics.solve(tspan_final, x0_true, stm=False, t_eval = sol_estim.t))
         return
     
     def recurse_measurements_list(
@@ -81,14 +105,70 @@ class Recursor:
         x0_true,
         x0_estim,
         P0,
-        t_measurements,
-        y_measurements,
-        R_measurements,
+        t_measurements: list,
+        y_measurements: list,
+        R_measurements: list,
     ):
-        """Recurse from a given list of measurements"""
+        """Recurse from a given list of measurements
+        
+        Args:
+            tspan (list): time span for recursion
+            x0_true (np.array): true initial state
+            x0_estim (np.array): initial state estimate
+            P0 (np.array): initial state covariance matrix
+            t_measurements (list): list of measurement times
+            y_measurements (list): list of measurements
+            R_measurements (list):list of  measurement covariance matrices
+        """
+        assert len(tspan) == 2, "tspan must have length 2"
+        assert len(x0_true) == len(x0_estim), "x0_true and x0_estim must have same length"
+        assert len(t_measurements) == len(y_measurements), "t_measurements and y_measurements must have same length"
+        assert len(t_measurements) == len(R_measurements), "t_measurements and R_measurements must have same length"
         self._initialize_storage()
         self._initialize_filter(tspan[0], x0_estim, P0)
-        raise NotImplementedError
+        self.nx = len(x0_estim)
+
+        # store initial state
+        self.ts_update   = [self.filter.t,]
+        self.xs_update   = [self.filter.x,]
+        self.Ps_update   = [self.filter.P,]
+
+        # iterate over measurement times
+        for i,(t_meas,y,R) in tqdm(
+            enumerate(zip(t_measurements, y_measurements, R_measurements)),
+            total=len(t_measurements)
+        ):
+            # predict until next measurement time
+            tspan_i = [self.filter.t, min(t_meas, tspan[1])]
+
+            if tspan_i[1] > tspan_i[0]:
+                # predict state estimate
+                sol_estim = self.filter.predict(tspan_i)
+
+                # also propagte true state until next measurement time
+                sol_true = self.filter.dynamics.solve(tspan_i, x0_true, stm=False, t_eval = sol_estim.t)
+                x0_true = sol_true.y[:self.nx,-1]
+
+            # break if final time is exceeded
+            if self.filter.t >= tspan[1]:
+                break
+
+            # perform measurement update
+            self.filter.update(y, R)
+
+            # store information from this iteration
+            self.sols_estim.append(sol_estim)
+            self.sols_true.append(sol_true)
+            self.xs_update.append(copy.deepcopy(self.filter.x))
+            self.Ps_update.append(copy.deepcopy(self.filter.P))
+
+        # perform final prediction if final measurement is not at final time
+        if self.filter.t < tspan[1]:
+            tspan_final = [self.filter.t, tspan[1]]
+            sol_estim = self.filter.predict(tspan_final)
+            self.sols_estim.append(sol_estim)
+            self.sols_true.append(self.filter.dynamics.solve(tspan_final, x0_true, stm=False, t_eval = sol_estim.t))
+        return
     
     def plot_state_history(
         self,

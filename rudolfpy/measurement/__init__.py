@@ -3,3 +3,4 @@
 
 from ._base_measurement import BaseMeasurement
 from ._measurement_position import MeasurementPosition
+from ._measurement_angles import MeasurementAngle

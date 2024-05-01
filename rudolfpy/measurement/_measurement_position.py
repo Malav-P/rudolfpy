@@ -4,6 +4,7 @@ import numpy as np
 from ._base_measurement import BaseMeasurement
 
 class MeasurementPosition(BaseMeasurement):
+    """Position vector measurement object"""
     def __init__(self):
         super().__init__()
         return
