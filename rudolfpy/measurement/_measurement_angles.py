@@ -127,18 +127,17 @@ def get_perturbation_T(dphi: float):
     return np.cos(eps)*np.eye(3) + np.sin(eps)*vec2skewsymmetric(uvec) + (1 - np.cos(eps))*np.outer(uvec, uvec)
        
 
-def func_simulate_measurement_angle(t, x, r_observer, params: list):
+def func_simulate_measurement_angle(t, x, params: list):
     """Simulate angle measurement with noise
     
     Args:
         x (np.ndarray): state vector
-        r_observer (np.ndarray): observer position vector
-        params (list): measurement noise standard deviation
+        params (list): observer position vector and measurement noise standard deviation 
     
     Returns:
         (tuple): measurement and measurement covariance
     """
-    sigma_phi = params[0]
+    r_observer, sigma_phi = params
     r_rel = x[0:3] - r_observer
     rnorm = np.linalg.norm(r_rel)
     T_ptrb = get_perturbation_T(sigma_phi)
