@@ -1,0 +1,24 @@
+package:
+  name: rudolfpy
+  version: 0.1.0
+
+source:
+  git_url: https://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@github.gatech.edu/SSOG/python-filter.git
+  git_rev: development
+
+build:
+  script: {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - pip
+    - setuptools
+    - python
+    - git
+  run:
+    - numpy
+    - matplotlib
+    - numba
+    - scipy
+    - tqdm
+
