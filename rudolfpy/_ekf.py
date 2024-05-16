@@ -80,5 +80,5 @@ class ExtendedKalmanFilter(BaseFilter):
         S = H @ self._P @ H.T + R                                                      # innovation covariance
         K = self._P @ H.T @ np.linalg.inv(S)                                           # Kalman gain
         self._x = self._x + K @ ytilde                                                 # update state estimate
-        self._P = (np.eye(6) - K @ H) @ self._P @ (np.eye(6) - K @ H).T + K @ R @ K.T  # Joseph update
+        self._P = (np.eye(self.nx) - K @ H) @ self._P @ (np.eye(self.nx) - K @ H).T + K @ R @ K.T  # Joseph update
         return ytilde, S, K

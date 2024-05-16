@@ -25,6 +25,7 @@ class Recursor:
         self.filter.t = t0         # set initial time
         self.filter.x = x0_estim   # set initial state estimate
         self.filter.P = P0         # set initial state covariance matrix
+        self.filter.nx = len(x0_estim)      # number of states
         return
     
     def _initialize_storage(self):

@@ -71,3 +71,14 @@ class BaseFilter:
         """setter for state covariance matrix"""
         self._P = value
         return
+
+    @property
+    def nx(self):
+        """getter for number of elements in state"""
+        return self._nx
+    
+    @nx.setter
+    def nx(self, value):
+        """setter for number of elements in state"""
+        self._nx = value
+        return
