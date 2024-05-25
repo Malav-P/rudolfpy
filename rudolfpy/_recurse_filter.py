@@ -42,6 +42,7 @@ class Recursor:
         t_measurements: list,
         func_simulate_measurements: callable,
         params_measurements: list = None,
+        params_measurement_constant: list = None,
         disable_tqdm = True,
     ):
         """Recurse from a function that generates measurements
@@ -58,6 +59,10 @@ class Recursor:
         assert len(x0_true) == len(x0_estim), "x0_true and x0_estim must have same length"
         if params_measurements is not None:
             assert len(params_measurements) == len(t_measurements), "params_measurements and t_measurements must have same length"
+        
+        if (params_measurements is not None) and (params_measurement_constant is not None):
+            raise ValueError("Only one of params_measurements and params_measurement_constant can be provided")
+        
         self._initialize_storage()
         self._initialize_filter(tspan[0], x0_estim, P0)
         self.nx = len(x0_estim)
@@ -85,9 +90,11 @@ class Recursor:
             # simulate measurement
             if params_measurements is None:
                 y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1])
-            else:
+            elif params_measurements is not None:
                 y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1], params_measurements[i])
-
+            elif params_measurement_constant is not None:
+                y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1], params_measurement_constant)
+                
             # perform measurement update
             self.filter.update(y, R)
 
