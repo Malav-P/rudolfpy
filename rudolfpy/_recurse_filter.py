@@ -46,6 +46,14 @@ class Recursor:
         disable_tqdm = True,
     ):
         """Recurse from a function that generates measurements
+
+        The measurement function has signature `y, R = func_simulate_measurements(t,x,params)`. 
+        If the measurement could not be generated, return `y = None`.
+        
+        The `params` argument is used to pass additional parameters: 
+        - If each measurement should have a different parameter, provide a list of parameters `params_measurements`.
+        - If all measurements should have the same parameter, provide a single parameter `params_measurement_constant`.
+        Both `params_measurements` and `params_measurement_constant` cannot be provided. 
         
         Args:
             tspan (list): time span for recursion
@@ -54,6 +62,9 @@ class Recursor:
             P0 (np.array): initial state covariance matrix
             t_measurements (np.array): measurement times
             func_simulate_ measurements (func): function to simulate measurements, with signature `y, R = func(t, x)`
+            params_measurements (list): list of parameters for each measurement
+            params_measurement_constant (list): constant parameters for all measurements
+            disable_tqdm (bool): whether to disable tqdm progress bar
         """
         assert len(tspan) == 2, "tspan must have length 2"
         assert len(x0_true) == len(x0_estim), "x0_true and x0_estim must have same length"
