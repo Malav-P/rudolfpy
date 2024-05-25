@@ -68,6 +68,8 @@ class Recursor:
         self.nx = len(x0_estim)
 
         # store initial state
+        self.ys = []
+        self.Rs = []
         self.ts_update   = [self.filter.t,]
         self.xs_update   = [self.filter.x,]
         self.Ps_update   = [self.filter.P,]
@@ -96,13 +98,20 @@ class Recursor:
                 y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1], params_measurement_constant)
                 
             # perform measurement update
-            self.filter.update(y, R)
+            if y is not None:
+                self.filter.update(y, R)
 
             # store information from this iteration
             self.sols_estim.append(sol_estim)
             self.sols_true.append(sol_true)
             self.xs_update.append(copy.deepcopy(self.filter.x))
             self.Ps_update.append(copy.deepcopy(self.filter.P))
+            if y is not None:
+                self.ys.append(y)
+                self.Rs.append(R)
+            else:
+                self.ys.append(np.nan)
+                self.Rs.append(np.nan)
 
             # break if final time is exceeded
             if self.filter.t >= tspan[1]:
