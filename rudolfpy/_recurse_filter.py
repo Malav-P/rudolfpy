@@ -88,7 +88,7 @@ class Recursor:
                 x0_true = sol_true.y[:self.nx,-1]
 
             # simulate measurement
-            if params_measurements is None:
+            if (params_measurements is None) and (params_measurement_constant is None):
                 y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1])
             elif params_measurements is not None:
                 y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1], params_measurements[i])
