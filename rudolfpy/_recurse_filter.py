@@ -79,6 +79,7 @@ class Recursor:
         self.nx = len(x0_estim)
 
         # store initial state
+        self.ts_y = []
         self.ys = []
         self.Rs = []
         self.ts_update   = [self.filter.t,]
@@ -115,12 +116,15 @@ class Recursor:
             # store information from this iteration
             self.sols_estim.append(sol_estim)
             self.sols_true.append(sol_true)
+            self.ts_update.append(self.filter.t)
             self.xs_update.append(copy.deepcopy(self.filter.x))
             self.Ps_update.append(copy.deepcopy(self.filter.P))
             if y is not None:
+                self.ts_y.append(self.filter.t)
                 self.ys.append(y)
                 self.Rs.append(R)
             else:
+                self.ts_y.append(np.nan)
                 self.ys.append(np.nan)
                 self.Rs.append(np.nan)
 
@@ -134,6 +138,105 @@ class Recursor:
             sol_estim = self.filter.predict(tspan_final)
             self.sols_estim.append(sol_estim)
             self.sols_true.append(self.filter.dynamics.solve(tspan_final, x0_true, stm=False, t_eval = sol_estim.t))
+        return
+    
+    def recurse_measurements_func_events(
+        self,
+        tspan,
+        x0_true,
+        x0_estim,
+        P0,
+        events: list,
+        func_simulate_measurements: callable,
+        params_measurement_constant: list = None,
+        maxiter = 1000,
+        meas_interval_min = 0.01,
+    ):
+        """Recurse from a given set of events when measurements are to be generated
+        
+        Args:
+            tspan (list): time span for recursion
+        """
+        assert len(tspan) == 2, "tspan must have length 2"
+        assert len(x0_true) == len(x0_estim), "x0_true and x0_estim must have same length"
+        
+        self._initialize_storage()
+        self._initialize_filter(tspan[0], x0_estim, P0)
+        self.nx = len(x0_estim)
+
+        # store initial state
+        self.ts_y = []
+        self.ys = []
+        self.Rs = []
+        self.ts_update   = [self.filter.t,]
+        self.xs_update   = [self.filter.x,]
+        self.Ps_update   = [self.filter.P,]
+        reached_final_time = False
+
+        # iterate over measurement times
+        for it in range(maxiter):
+            # propagate until event
+            _sol_until_event = self.filter.dynamics.solve([self.filter.t, tspan[1]],
+                                                          self.filter._x,
+                                                          stm = False,
+                                                          events = events)
+            if _sol_until_event.t[-1] < self.filter.t + meas_interval_min:
+                # we further propagate until next event
+                _sol_after_event = self.filter.dynamics.solve([self.filter.t, self.filter.t + meas_interval_min],
+                                                            self.filter._x,
+                                                            stm = False,)
+                _sol_until_event = self.filter.dynamics.solve([_sol_after_event.t[-1], tspan[1]],
+                                                            _sol_after_event.y[:self.nx,-1],
+                                                            stm = False,
+                                                            events = events)
+
+            # propagate until next measurement time
+            tspan_next_meas = [self.filter.t,
+                               min(tspan[1], _sol_until_event.t[-1])]
+            sol_estim = self.filter.predict(tspan_next_meas)
+
+            # also propagte true state until next measurement time
+            sol_true = self.filter.dynamics.solve([sol_estim.t[0], sol_estim.t[-1]],
+                                                  x0_true,
+                                                  stm = False,
+                                                  t_eval = sol_estim.t)
+            x0_true = sol_true.y[:self.nx,-1]
+
+            # store estimate information
+            self.sols_estim.append(sol_estim)
+            self.sols_true.append(sol_true)
+
+            # exit if final time is reached
+            if self.filter.t >= tspan[1]:
+                reached_final_time = True
+                #print(f"Reached final time {self.filter.t:1.4f} == tspan[1] = {tspan[1]:1.4f} TU")
+                break
+
+            # simulate measurement
+            if (params_measurement_constant is None):
+                y, R = func_simulate_measurements(self.filter.t, sol_true.y[:self.nx,-1])
+            else:
+                y, R = func_simulate_measurements(self.filter.t, sol_true.y[:self.nx,-1], params_measurement_constant)
+                
+            # perform measurement update
+            if y is not None:
+                self.filter.update(y, R)
+
+            # store information from this iteration
+            self.ts_update.append(self.filter.t)
+            self.xs_update.append(copy.deepcopy(self.filter.x))
+            self.Ps_update.append(copy.deepcopy(self.filter.P))
+            if y is not None:
+                self.ts_y.append(self.filter.t)
+                self.ys.append(y)
+                self.Rs.append(R)
+            else:
+                self.ts_y.append(np.nan)
+                self.ys.append(np.nan)
+                self.Rs.append(np.nan)
+
+        if reached_final_time is False:
+            print(f"WARNING : recursion reached max iter before final time!")
         return
     
     def recurse_measurements_list(

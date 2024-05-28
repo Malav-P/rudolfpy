@@ -36,23 +36,24 @@ class ExtendedKalmanFilter(BaseFilter):
         print(f"   Measurement model : {self.measurement_model.name}")
         return
     
-    def predict(self, tspan, t_eval = None):
+    def predict(self, tspan, t_eval = None, events = None):
         """Perform time prediction
         
         Args:
             tspan (tuple): time span for prediction
             t_eval (np.ndarray): time points to evaluate solution
+            events (list): list of callables to prematurely end integration, defaults to None
         
         Returns:
             (ODESolution): solution object (state and STM)
         """
         # perform prediction of state
-        sol_stm = self.dynamics.solve(tspan, self._x, stm=True, t_eval = t_eval)
+        sol_stm = self.dynamics.solve(tspan, self._x, stm=True, t_eval = t_eval, events = events)
         self._x = sol_stm.y[:6,-1]                                    # propagate state
         Phi = sol_stm.y[6:, -1].reshape(6,6)
         Q = self.func_process_noise(tspan, self.x, self.params_Q)     # process noise
         self._P = Phi @ self._P @ Phi.T + Q                           # propagate covariance
-        self._t += tspan[1] - tspan[0]                                # propagate time
+        self._t += sol_stm.t[-1] - sol_stm.t[0]                       # propagate time
         return sol_stm
     
     def update(self, y, R, params = None):

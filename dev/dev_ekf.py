@@ -38,8 +38,10 @@ def test_ekf_cr3bp():
     x0hat = x0 + np.random.normal(0, 1e-6, 6)
     P0 = np.eye(6) * 1e-6
 
-    filter.x = x0hat   # set initial state estimate
-    filter.P = P0      # set initial state covariance matrix
+    filter.t = 0.0              # set initial time
+    filter.nx = len(x0hat)      # set number of states
+    filter.x = x0hat            # set initial state estimate
+    filter.P = P0               # set initial state covariance matrix
     print(f"Initial filter state: ")
     print(f"filter.x = {filter.x}")
     print(f"filter.P = {filter.P}")
