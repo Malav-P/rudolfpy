@@ -1,12 +1,13 @@
 package:
   name: rudolfpy
-  version: 0.1.0
+  version: 0.1.1
 
 source:
   git_url: https://github.gatech.edu/SSOG/python-filter.git
   git_rev: development
 
 build:
+  noarch: generic 
   script: {{ PYTHON }} -m pip install . -vv
 
 requirements:
