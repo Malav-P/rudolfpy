@@ -7,7 +7,7 @@ source:
   git_rev: development
 
 build:
-  noarch: generic 
+  noarch: python 
   script: {{ PYTHON }} -m pip install . -vv
 
 requirements:
