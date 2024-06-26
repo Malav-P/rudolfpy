@@ -49,8 +49,8 @@ class ExtendedKalmanFilter(BaseFilter):
         """
         # perform prediction of state
         sol_stm = self.dynamics.solve(tspan, self._x, stm=True, t_eval = t_eval, events = events)
-        self._x = sol_stm.y[:6,-1]                                    # propagate state
-        Phi = sol_stm.y[6:, -1].reshape(6,6)
+        self._x = sol_stm.y[:self.nx,-1]                                    # propagate state
+        Phi = sol_stm.y[self.nx:, -1].reshape(self.nx,self.nx)
         Q = self.func_process_noise(tspan, self.x, self.params_Q)     # process noise
         self._P = Phi @ self._P @ Phi.T + Q                           # propagate covariance
         self._t += sol_stm.t[-1] - sol_stm.t[0]                       # propagate time
