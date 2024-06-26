@@ -42,7 +42,7 @@ class Recursor:
         t_measurements: list,
         func_simulate_measurements: callable,
         params_measurements: list = None,
-        params_measurement_constant: list = None,
+        params_measurement_constant: list = [],
         disable_tqdm = True,
     ):
         """Recurse from a function that generates measurements
@@ -71,8 +71,8 @@ class Recursor:
         if params_measurements is not None:
             assert len(params_measurements) == len(t_measurements), "params_measurements and t_measurements must have same length"
         
-        if (params_measurements is not None) and (params_measurement_constant is not None):
-            raise ValueError("Only one of params_measurements and params_measurement_constant can be provided")
+        #if (params_measurements is not None) and (params_measurement_constant is not None):
+        #    raise ValueError("Only one of params_measurements and params_measurement_constant can be provided")
         
         self._initialize_storage()
         self._initialize_filter(tspan[0], x0_estim, P0)
@@ -348,7 +348,7 @@ class Recursor:
         time_unit = "TU",
     ):
         """Plot error history of state estimate"""
-        nx_half = self.nx//2
+        nx_half = int(np.ceil(self.nx/2))
         if state_multipliers is None:
             state_multipliers = np.zeros(self.nx)
         else:
