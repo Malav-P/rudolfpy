@@ -347,8 +347,27 @@ class Recursor:
         state_labels = None,
         time_unit = "TU",
     ):
-        """Plot error history of state estimate"""
-        nx_half = int(np.ceil(self.nx/2))
+        """Plot error history of state estimate
+        
+        Args:
+            figsize (tuple): figure size
+            lw_true (float): line width for true state
+            lw_estimate (float): line width for estimated state
+            color_estimate (str): color for estimated state
+            color_true (str): color for true state
+            TU (float): time unit
+            state_multipliers (list): multipliers for each state
+            state_labels (list): labels for each state
+            time_unit (str): time unit string
+
+        Returns:
+            (tuple): figure and axes
+        """
+        if state_labels is None:
+            nx_half = int(np.ceil(self.nx/2))
+        else:
+            nx_half = len(state_labels)//2
+
         if state_multipliers is None:
             state_multipliers = np.zeros(self.nx)
         else:
@@ -407,7 +426,23 @@ class Recursor:
         time_unit = "TU",
         k_sigma = 3,
     ):
-        """Plot error history of state estimate"""
+        """Plot error history of state estimate
+        
+        Args:
+            figsize (tuple): figure size
+            lw_estimate (float): line width for estimated state
+            color_estimate (str): color for estimated state
+            color_sigma (str): color for sigma bands
+            alpha_sigma (float): alpha for sigma bands
+            TU (float): time unit
+            state_multipliers (list): multipliers for each state
+            state_labels (list): labels for each state
+            time_unit (str): time unit string
+            k_sigma (float): number of sigma bands
+
+        Returns:
+            (tuple): figure and axes
+        """
         nx_half = self.nx//2
         if state_multipliers is None:
             state_multipliers = np.zeros(self.nx)
