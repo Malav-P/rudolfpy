@@ -443,7 +443,11 @@ class Recursor:
         Returns:
             (tuple): figure and axes
         """
-        nx_half = self.nx//2
+        if state_labels is None:
+            nx_half = int(np.ceil(self.nx/2))
+        else:
+            nx_half = len(state_labels)//2
+            
         if state_multipliers is None:
             state_multipliers = np.zeros(self.nx)
         else:
