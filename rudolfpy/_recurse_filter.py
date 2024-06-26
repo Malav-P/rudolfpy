@@ -355,8 +355,8 @@ class Recursor:
             assert len(state_multipliers) == self.nx, "state_multipliers must have length equal to state vector"
         if state_labels is None:
             state_labels = [f"State {i}" for i in range(self.nx)]
-        else:
-            assert len(state_labels) == self.nx, "state_labels must have length equal to state vector"
+        #else:
+        #    assert len(state_labels) == self.nx, "state_labels must have length equal to state vector"
 
         # initialize figure 
         fig, axs = plt.subplots(2,nx_half,figsize=figsize)
