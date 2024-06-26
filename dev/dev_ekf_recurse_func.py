@@ -49,7 +49,7 @@ def test_ekf_cr3bp():
 
     # measurement frequency and simulation function
     sigma_r = 100 / LU
-    t_measurements = np.linspace(0.05, 3 * period, 6)
+    t_measurements = np.linspace(0.0, 3 * period, 6)
 
     # perform recursion
     recursor.recurse_measurements_func(

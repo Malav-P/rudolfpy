@@ -94,12 +94,17 @@ class Recursor:
             # predict until next measurement time
             tspan_i = [self.filter.t, min(t_meas, tspan[1])]
 
-            if tspan_i[1] > tspan_i[0]:
+            if tspan_i[1] >= tspan_i[0]:
                 # predict state estimate
                 sol_estim = self.filter.predict(tspan_i)
 
                 # also propagte true state until next measurement time
                 sol_true = self.filter.dynamics.solve(tspan_i, x0_true, stm=False, t_eval = sol_estim.t)
+                
+                # patch in case the very first measurement is exactly at the initial time of the filter
+                if tspan_i[1] == tspan_i[0]:
+                    sol_true.t = np.array([tspan_i[0], tspan_i[0]])
+                    sol_true.y = np.concatenate((x0_true.reshape(-1,1), x0_true.reshape(-1,1)),axis=1)
                 x0_true = sol_true.y[:self.nx,-1]
 
             # simulate measurement
