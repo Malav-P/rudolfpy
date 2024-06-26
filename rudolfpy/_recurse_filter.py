@@ -346,6 +346,7 @@ class Recursor:
         state_multipliers = None,
         state_labels = None,
         time_unit = "TU",
+        verbose = True,
     ):
         """Plot error history of state estimate
         
@@ -367,6 +368,8 @@ class Recursor:
             nx_half = int(np.ceil(self.nx/2))
         else:
             nx_half = len(state_labels)//2
+        if verbose:
+            print(f"nx_half = {nx_half}")
 
         if state_multipliers is None:
             state_multipliers = np.zeros(self.nx)
