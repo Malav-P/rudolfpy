@@ -82,6 +82,7 @@ class Recursor:
         self.ts_y = []
         self.ys = []
         self.Rs = []
+        self.Ks = []
         self.ts_update   = [self.filter.t,]
         self.xs_update   = [self.filter.x,]
         self.Ps_update   = [self.filter.P,]
@@ -111,7 +112,7 @@ class Recursor:
                 
             # perform measurement update
             if y is not None:
-                self.filter.update(y, R)
+                _, _, K = self.filter.update(y, R)
 
             # store information from this iteration
             self.sols_estim.append(sol_estim)
@@ -123,10 +124,12 @@ class Recursor:
                 self.ts_y.append(self.filter.t)
                 self.ys.append(y)
                 self.Rs.append(R)
+                self.Ks.append(K)
             else:
                 self.ts_y.append(np.nan)
                 self.ys.append(np.nan)
                 self.Rs.append(np.nan)
+                self.Ks.append(np.nan)
 
             # break if final time is exceeded
             if self.filter.t >= tspan[1]:
@@ -168,6 +171,7 @@ class Recursor:
         self.ts_y = []
         self.ys = []
         self.Rs = []
+        self.Ks = []
         self.ts_update   = [self.filter.t,]
         self.xs_update   = [self.filter.x,]
         self.Ps_update   = [self.filter.P,]
@@ -220,7 +224,7 @@ class Recursor:
                 
             # perform measurement update
             if y is not None:
-                self.filter.update(y, R)
+                _, _, K = self.filter.update(y, R)
 
             # store information from this iteration
             self.ts_update.append(self.filter.t)
@@ -230,10 +234,12 @@ class Recursor:
                 self.ts_y.append(self.filter.t)
                 self.ys.append(y)
                 self.Rs.append(R)
+                self.Ks.append(K)
             else:
                 self.ts_y.append(np.nan)
                 self.ys.append(np.nan)
                 self.Rs.append(np.nan)
+                self.Ks.append(np.nan)
 
         if reached_final_time is False:
             print(f"WARNING : recursion reached max iter before final time!")
@@ -275,9 +281,13 @@ class Recursor:
         self.nx = len(x0_estim)
 
         # store initial state
+        self.ts_y = t_measurements          # store to unify interface
+        self.ys = y_measurements            # store to unify interface
+        self.Rs = R_measurements            # store to unify interface
         self.ts_update   = [self.filter.t,]
         self.xs_update   = [self.filter.x,]
         self.Ps_update   = [self.filter.P,]
+        self.Ks = []
 
         # iterate over measurement times
         for i,(t_meas,y,R) in tqdm(
@@ -297,13 +307,16 @@ class Recursor:
                 x0_true = sol_true.y[:self.nx,-1]
 
             # perform measurement update
-            self.filter.update(y, R, params_measurements[i])
+            _, _, K = self.filter.update(y, R, params_measurements[i])
 
             # store information from this iteration
             self.sols_estim.append(sol_estim)
             self.sols_true.append(sol_true)
+
+            self.ts_update.append(self.filter.t)
             self.xs_update.append(copy.deepcopy(self.filter.x))
             self.Ps_update.append(copy.deepcopy(self.filter.P))
+            self.Ks.append(K)
 
             # break if final time is exceeded
             if self.filter.t >= tspan[1]:
@@ -320,6 +333,7 @@ class Recursor:
     def plot_state_history(
         self,
         figsize = (12,6),
+        lw_true = 1.2,
         lw_estimate = 0.95,
         color_estimate = "crimson",
         color_true = "black",
@@ -357,11 +371,11 @@ class Recursor:
                 axs[0,i].plot(ts * TU,
                               state_multipliers[i] * x_true[i,:],
                               color = color_true,
-                              lw = lw_estimate)
+                              lw = lw_true)
                 axs[1,i].plot(ts * TU, 
                               state_multipliers[i+3] * x_true[i+nx_half,:],
                               color = color_true,
-                              lw = lw_estimate)
+                              lw = lw_true)
                 
                 axs[0,i].plot(ts * TU,
                               state_multipliers[i] * x_estim[i,:],
@@ -447,5 +461,42 @@ class Recursor:
                               state_multipliers[i+3] * (x_estim[i+nx_half,:] - x_true[i+3,:]),
                               color=color_estimate,
                               lw = lw_estimate)
+        plt.tight_layout()
+        return fig, axs
+    
+    def plot_gain_history(
+        self,
+        figsize = (12,8),
+        TU = 1.0,
+        time_unit = "TU",
+        color = "navy",
+    ):
+        """Plot gain history
+        
+        Args:
+            figsize (tuple): figure size
+            TU (float): time unit
+            time_unit (str): time unit string
+            color (str): color for plotting
+
+        Returns:
+            (tuple): figure and axes
+        """
+        ms = [len(self.ys[i]) for i in range(len(self.ys))]
+        m = next((m_val for m_val in ms if not np.isnan(m_val)), None)
+        fig, axs = plt.subplots(self.nx, m, figsize=figsize)
+        for ix in range(self.nx):
+            for iy in range(m):
+                # handle case where we have 1D measurements
+                if m == 1:
+                    ax = axs[ix]
+                else:
+                    ax = axs[ix,iy]
+
+                # plot gain history
+                ax.grid(True, alpha=0.3)
+                ax.plot(self.ts_update[1:], [K[ix,iy] for K in self.Ks],
+                                marker="x", color=color)
+                ax.set(xlabel=f"Time, {time_unit}", ylabel=f"K[{ix},{iy}]")
         plt.tight_layout()
         return fig, axs

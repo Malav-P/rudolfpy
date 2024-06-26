@@ -78,6 +78,8 @@ def test_ekf_cr3bp():
         state_labels = ["$\delta x$, km","$\delta y$, km","$\delta z$, km",
                         "$\delta v_x$, m/s","$\delta v_y$, m/s","$\delta v_z$, m/s"],
     )
+
+    fig, axs = recursor.plot_gain_history(TU = TU/86400, time_unit = "day")
     return
 
 

@@ -93,6 +93,8 @@ def test_ekf_cr3bp():
     for ax in axs.flatten():
         for _t in recursor.ts_y:
             ax.axvline(_t*TU/86400, color='r', linestyle='--')
+
+    fig, axs = recursor.plot_gain_history(TU = TU/86400, time_unit = "day")
     return
 
 
