@@ -324,7 +324,7 @@ class Recursor:
             self.Ks.append(K)
 
             # break if final time is exceeded
-            if self.filter.t >= tspan[1]:
+            if self.filter.t > tspan[1]:
                 break
 
         # perform final prediction if final measurement is not at final time
