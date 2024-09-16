@@ -47,7 +47,7 @@ class Recursor:
     ):
         """Recurse from a function that generates measurements
 
-        The measurement function has signature `y, R = func_simulate_measurements(t,x,params)`. 
+        The measurement function has signature `y, R = func_simulate_measurements(t,x,xhat,params)`. 
         If the measurement could not be generated, return `y = None`.
         
         The `params` argument is used to pass additional parameters: 
@@ -109,11 +109,11 @@ class Recursor:
 
             # simulate measurement
             if (params_measurements is None) and (params_measurement_constant is None):
-                y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1])
+                y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1], sol_estim.y[:self.nx,-1])
             elif params_measurements is not None:
-                y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1], params_measurements[i])
+                y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1], sol_estim.y[:self.nx,-1], params_measurements[i])
             elif params_measurement_constant is not None:
-                y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1], params_measurement_constant)
+                y, R = func_simulate_measurements(t_meas, sol_true.y[:self.nx,-1], sol_estim.y[:self.nx,-1], params_measurement_constant)
                 
             # perform measurement update
             if y is not None:
@@ -130,11 +130,11 @@ class Recursor:
                 self.ys.append(y)
                 self.Rs.append(R)
                 self.Ks.append(K)
-            else:
-                self.ts_y.append(np.nan)
-                self.ys.append(np.nan)
-                self.Rs.append(np.nan)
-                self.Ks.append(np.nan)
+            # else:
+            #     self.ts_y.append(np.nan)
+            #     self.ys.append(np.nan)
+            #     self.Rs.append(np.nan)
+            #     self.Ks.append(np.nan)
 
             # break if final time is exceeded
             if self.filter.t >= tspan[1]:
@@ -223,9 +223,9 @@ class Recursor:
 
             # simulate measurement
             if (params_measurement_constant is None):
-                y, R = func_simulate_measurements(self.filter.t, sol_true.y[:self.nx,-1])
+                y, R = func_simulate_measurements(self.filter.t, sol_true.y[:self.nx,-1], sol_estim.y[:self.nx,-1])
             else:
-                y, R = func_simulate_measurements(self.filter.t, sol_true.y[:self.nx,-1], params_measurement_constant)
+                y, R = func_simulate_measurements(self.filter.t, sol_true.y[:self.nx,-1], sol_estim.y[:self.nx,-1], params_measurement_constant)
                 
             # perform measurement update
             if y is not None:
@@ -403,15 +403,17 @@ class Recursor:
                               state_multipliers[i+3] * x_true[i+nx_half,:],
                               color = color_true,
                               lw = lw_true)
-                
-                axs[0,i].plot(ts * TU,
-                              state_multipliers[i] * x_estim[i,:],
-                              color = color_estimate,
-                              lw = lw_estimate)
-                axs[1,i].plot(ts * TU, 
-                              state_multipliers[i+3] * x_estim[i+nx_half,:],
-                              color= color_estimate,
-                              lw = lw_estimate)
+                try:
+                    axs[0,i].plot(ts * TU,
+                                state_multipliers[i] * x_estim[i,:],
+                                color = color_estimate,
+                                lw = lw_estimate)
+                    axs[1,i].plot(ts * TU, 
+                                state_multipliers[i+3] * x_estim[i+nx_half,:],
+                                color= color_estimate,
+                                lw = lw_estimate)
+                except:
+                    print(f"Error in plotting state {i}, skipping!")
         plt.tight_layout()
         return fig, axs
     
