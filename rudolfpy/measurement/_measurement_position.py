@@ -17,7 +17,7 @@ class MeasurementPosition(BaseMeasurement):
         return np.concatenate((np.eye(3), np.zeros((3,3))), axis=1)
     
 
-def func_simulate_measurements(t, x, params):
+def func_simulate_measurements(t, x, xhat, params):
     """Simulate position vector measurements with noise
     
     Args:
