@@ -28,4 +28,4 @@ from .measurement import *
 from ._base_filter import BaseFilter, unbiased_random_process_3dof 
 from ._ekf import ExtendedKalmanFilter
 from ._ukf import UnscentedKalmanFilter
-from ._recurse_filter import _get_target_history_filter, plot_state_history
+from ._recurse_filter import _get_state_history_filter, plot_state_history

@@ -1,7 +1,8 @@
 """ UKF Object"""
 
 import numpy as np
-
+from numpy.typing import ArrayLike
+from typing import Optional
 from ._base_filter import BaseFilter
 
 class UnscentedKalmanFilter(BaseFilter):
@@ -23,7 +24,25 @@ class UnscentedKalmanFilter(BaseFilter):
         self.dim_z = self.measurement_model.measurement_dim
 
 
-    def initialize(self, t, x0, P0):
+    def initialize(self,
+                   t: float,
+                   x0: np.ndarray[float],
+                   P0: np.ndarray[float],
+                   alpha: float = 1e-3,
+                   beta: float = 2,
+                   kappa: float = 0):
+        """ 
+        Initialize the UKF
+        
+        Args:
+            t (float) : time
+            x0 (np.ndarray[float]) : initial state estimate
+            P0 (np.ndarray[float]) : initial covariance
+            alpha (float) : alpha parameter
+            beta (float) : beta paramter
+            kappa (float) : kappa parameter
+        
+        """
         self._t = t
         self._x = x0
         self._P = P0
@@ -32,9 +51,6 @@ class UnscentedKalmanFilter(BaseFilter):
         self.n_sigma = 2 * self.dim_x + 1
 
         # scaling parameters
-        alpha = 1e-3
-        beta = 2
-        kappa = 0
         self.lamda = (alpha**2) * (self.dim_x + kappa) - self.dim_x
 
         # unscented weights
@@ -49,7 +65,18 @@ class UnscentedKalmanFilter(BaseFilter):
     
     
 
-    def predict(self, tspan):
+    def predict(self,
+                tspan: ArrayLike):
+        """
+        Predict step
+
+        Args:
+            tspan (ArrayLike): 2-tuple containing timespan of predict step
+
+        Returns:
+            x, P : new state and covariance estimate
+        
+        """
 
         # compute sigma points
         sigma_pts = self.sigma_points() 
@@ -72,7 +99,21 @@ class UnscentedKalmanFilter(BaseFilter):
 
         return y, Pyy
 
-    def update(self, z_measured, R, params = None):
+    def update(self,
+               z_measured: np.ndarray[float],
+               R: np.ndarray[float],
+               params: Optional[list] = None):
+        """
+        Update step
+
+        Args:
+            z_measured (np.ndarray[float]) : measurement vector
+            R (np.ndarray[float]) : measurement covariance
+            params (list) : parameters needed for measurement prediction
+
+        Returns:
+            x, P : posterior state and covariance estimate
+        """
 
         # compute sigma pts
         sigma_pts = self.sigma_points()
@@ -102,7 +143,18 @@ class UnscentedKalmanFilter(BaseFilter):
 
 
 
-    def compute_mean_and_covariances(self, y_sigmas):
+    def compute_mean_and_covariances(self,
+                                     y_sigmas: np.ndarray[float]):
+        """
+        Compute weighted mean and weighted covariance of 2d array
+
+        Args:
+            y_sigmas (np.ndarray[float]) : array of shape (n_points, dim)
+
+        Returns:
+            y, Pyy : weighted mean and covariance
+        
+        """
         
         y = np.average(y_sigmas, axis=0, weights=self.Wm)
 
@@ -111,36 +163,63 @@ class UnscentedKalmanFilter(BaseFilter):
         return y, Pyy
 
 
-    def h(self, sigma_pt, params = None):
+    def h(self,
+          x: np.ndarray[float],
+          params: Optional[list] = None):
+
+        """
+        Measurement model functon. Represent z = h(x) where z is measurement and x is state.
+
+        Args:
+            x (np.ndarray[float]) : state vector
+            params (list) : list of parameters to pass to measurement model
+        """
 
         if params is None:
-            z = self.measurement_model.predict_measurement(self._t, sigma_pt)  # measurement_prediction
+            z = self.measurement_model.predict_measurement(self._t, x)  # measurement_prediction
         else:
-            z = self.measurement_model.predict_measurement(self._t, sigma_pt, params)  # measurement_prediction
+            z = self.measurement_model.predict_measurement(self._t, x, params)  # measurement_prediction
 
         return z
 
 
-    def f(self, sigma_pt, tspan):
-        sol_stm = self.dynamics.solve(tspan, sigma_pt, stm=False)
-        y_sigma = sol_stm.y[:self.dim_x, -1]
+    def f(self,
+          x: np.ndarray[float],
+          tspan: ArrayLike):
 
-        return y_sigma
+        """
+        Dynamics model function. Represent x_t+1 = f(x_t, t)
+
+        Args:
+            x (np.ndarray[float]) : state vector
+            tspan (ArrayLike) : 2-tuple representing time span of dynamics propagation
+        """
+
+        sol_stm = self.dynamics.solve(tspan, x, stm=False)
+        y = sol_stm.y[:self.dim_x, -1]
+
+        return y
 
 
 
     def sigma_points(self):
+        """
+        Computes sigma points from state estimate
+
+        Returns:
+            sigma_pts (np.ndarray[float]): 2d array of shape (n_sigma_points, state_dimension)
+        """
 
         sigma_pts = np.zeros(shape=(self.n_sigma, self.dim_x))
 
+        S = np.linalg.cholesky(self._P).T
+
         sigma_pts[0] = self._x
-        plusterm = np.sqrt(self.dim_x + self.lamda) * np.linalg.cholesky(self._P).T + self._x
-        minusterm = -np.sqrt(self.dim_x + self.lamda) * np.linalg.cholesky(self._P).T + self._x
+        plusterm = np.sqrt(self.dim_x + self.lamda) * S + self._x
+        minusterm = -np.sqrt(self.dim_x + self.lamda) * S + self._x
 
         sigma_pts[1:self.dim_x + 1] = plusterm
         sigma_pts[self.dim_x + 1:] = minusterm
         
         
         return sigma_pts
-
-

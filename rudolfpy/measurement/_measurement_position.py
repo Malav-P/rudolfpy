@@ -5,20 +5,57 @@ from ._base_measurement import BaseMeasurement
 
 class MeasurementPosition(BaseMeasurement):
     """Position vector measurement object"""
+
+
+
     def __init__(self):
         super().__init__()
         self.name = "PositionVector"
         self.measurement_dim = 3
         return
     
-    def predict_measurement(self, t, x, params:list):
-        return x[0:3]
+    def predict_measurement(self,
+                            t: float,
+                            x: np.ndarray[float],
+                            params:list):
+        """
+        Compute measurement prediction
+
+        Args:
+            t (float): time
+            x (np.ndarray): state vector
+            params (list): list with one element, the standard deviation of the measurement noise
+
+        Returns:
+            (np.ndarray) : predicted measurement
+        """
+        return x[:3]
     
-    def measurement_partials(self, t, x, params:list):
+    def measurement_partials(self,
+                             t: float,
+                             x: np.ndarray[float],
+                             params:list):
+        """
+        Compute measurement jacobian
+
+        Args:
+            t (float): time
+            x (np.ndarray): state vector
+            params (list): list with one element, the standard deviation of the measurement noise
+
+        Returns:
+            (np.ndarray) : observation jacobian
+        
+        """
+
         return np.concatenate((np.eye(3), np.zeros((3,3))), axis=1)
     
 
-    def func_simulate_measurements(self, t, x, params:list):
+    def func_simulate_measurements(self,
+                                   t: float,
+                                   x: np.ndarray[float],
+                                   params:list):
+
         """Simulate position vector measurements with noise
         
         Args:

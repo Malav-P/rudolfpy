@@ -9,7 +9,7 @@ def unbiased_random_process_3dof(tspan, x, params):
     
     Args:
         tspan (tuple): time span
-        x (np.array): state vector # NOT USED, CAN BE REMOVED
+        x (np.array): state vector # TODO NOT USED, CAN BE REMOVED
         params (list): list containing sigma_process, which is a tunable parameter
 
     Returns:

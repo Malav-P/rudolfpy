@@ -1,6 +1,8 @@
 """EKF object"""
 
 import numpy as np
+from numpy.typing import ArrayLike
+from typing import Optional
 
 from ._base_filter import BaseFilter
 
@@ -37,16 +39,32 @@ class ExtendedKalmanFilter(BaseFilter):
         print(f"   Measurement model : {self.measurement_model.name}")
         return
 
-    def initialize(self, t, x0, P0):
+    def initialize(self,
+                   t: float,
+                   x0: np.ndarray[float],
+                   P0: np.ndarray[float]):
+
+        """
+        Initialize the EKF
+
+        Args:
+            t (float): time
+            x0 (np.ndarray[float]): initial state estimate
+            P0 (np.ndarray[float]): initial covariance
+
+        
+        """
         self._t = t
         self._x = x0
         self._P = P0
     
-    def predict(self, tspan):
+    def predict(self,
+                tspan: ArrayLike):
+                
         """Perform time prediction
         
         Args:
-            tspan (tuple): time span for prediction
+            tspan (ArrayLike): 2-tuple time span for prediction
         
         Returns:
             x, P (tuple) : tuple of ndarray giving the state, covariance pair
@@ -61,18 +79,24 @@ class ExtendedKalmanFilter(BaseFilter):
 
         return self._x, self._P
     
-    def update(self, y, R, params = None):
+    def update(self,
+               y: np.ndarray[float],
+               R: np.ndarray[float],
+               params: Optional[list] = None):
+
         """Perform measurement update
         
         Args:
-            y (np.ndarray): measurement vector
-            R (np.ndarray): measurement covariance matrix
+            y (np.ndarray[float]): measurement vector
+            R (np.ndarray[float]): measurement covariance matrix
+            params (list): params passed to measurement model
 
         Returns:
             x, P (tuple) : tuple of ndarray giving the state, covariance pair
         """
+        
         m = len(y)
-        assert R.shape == (m, m), f"R must be of shape ({m},{m})"
+
         # prediction of measurement and measurement partials
         if params is None:
             h = self.measurement_model.predict_measurement(self._t, self._x)
