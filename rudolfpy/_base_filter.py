@@ -1,4 +1,6 @@
 """Base filter object"""
+from abc import ABC, abstractmethod
+from typing import Tuple
 
 import numpy as np
 
@@ -7,7 +9,7 @@ def unbiased_random_process_3dof(tspan, x, params):
     
     Args:
         tspan (tuple): time span
-        x (np.array): state vector
+        x (np.array): state vector # NOT USED, CAN BE REMOVED
         params (list): list containing sigma_process, which is a tunable parameter
 
     Returns:
@@ -19,14 +21,13 @@ def unbiased_random_process_3dof(tspan, x, params):
         np.concatenate((dt_abs**2/2*np.eye(3), dt_abs*np.eye(3)), axis=1),
     ))
 
-
-class BaseFilter:
+class BaseFilter(ABC):
     def __init__(
         self,
         dynamics,
         measurement_model,
         func_process_noise = unbiased_random_process_3dof,
-        params_Q = [1e-5],
+        params_Q = [1e-5]
     ):
         self.dynamics = dynamics
         self.measurement_model = measurement_model
@@ -38,6 +39,25 @@ class BaseFilter:
         # set initial time
         self._t = 0.0
         return
+
+    @abstractmethod
+    def initialize(self, t, x0, P0):
+        """initialize filter with intial state and covariance"""
+        pass
+
+    @abstractmethod
+    def predict(self, tspan) -> Tuple[np.ndarray, np.ndarray]:
+        """predict step must be implemented by derived filter class"""
+
+        """ return type must be (x, P) state, covariance matrix pair"""
+        pass
+
+    @abstractmethod
+    def update(self, y, R, params) -> Tuple[np.ndarray, np.ndarray]:
+        """update step must be implemented by derived filter class"""
+
+        """ return type must be (x, P) state, covariance matrix pair"""
+        pass
 
     @property
     def t(self):

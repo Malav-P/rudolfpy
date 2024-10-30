@@ -18,15 +18,16 @@ class ExtendedKalmanFilter(BaseFilter):
         dynamics,
         measurement_model,
         func_process_noise,
-        params_Q,
+        params_Q = [1e-5]
     ):
         super().__init__(
             dynamics = dynamics,
             measurement_model = measurement_model,
             func_process_noise = func_process_noise,
-            params_Q = params_Q,
+            params_Q = params_Q
         )
         self.name = "ExtendedKalmanFilter"
+
         return
 
     def summary(self):
@@ -35,25 +36,30 @@ class ExtendedKalmanFilter(BaseFilter):
         print(f"   Process noise model : {self.func_process_noise.__name__}")
         print(f"   Measurement model : {self.measurement_model.name}")
         return
+
+    def initialize(self, t, x0, P0):
+        self._t = t
+        self._x = x0
+        self._P = P0
     
-    def predict(self, tspan, t_eval = None):
+    def predict(self, tspan):
         """Perform time prediction
         
         Args:
             tspan (tuple): time span for prediction
-            t_eval (np.ndarray): time points to evaluate solution
         
         Returns:
-            (ODESolution): solution object (state and STM)
+            x, P (tuple) : tuple of ndarray giving the state, covariance pair
         """
         # perform prediction of state
-        sol_stm = self.dynamics.solve(tspan, self._x, stm=True, t_eval = t_eval)
+        sol_stm = self.dynamics.solve(tspan, self._x, stm=True)
         self._x = sol_stm.y[:6,-1]                                    # propagate state
         Phi = sol_stm.y[6:, -1].reshape(6,6)
         Q = self.func_process_noise(tspan, self.x, self.params_Q)     # process noise
         self._P = Phi @ self._P @ Phi.T + Q                           # propagate covariance
         self._t += tspan[1] - tspan[0]                                # propagate time
-        return sol_stm
+
+        return self._x, self._P
     
     def update(self, y, R, params = None):
         """Perform measurement update
@@ -63,7 +69,7 @@ class ExtendedKalmanFilter(BaseFilter):
             R (np.ndarray): measurement covariance matrix
 
         Returns:
-            (tuple): innovation, innovation covariance, Kalman gain
+            x, P (tuple) : tuple of ndarray giving the state, covariance pair
         """
         m = len(y)
         assert R.shape == (m, m), f"R must be of shape ({m},{m})"
@@ -81,4 +87,5 @@ class ExtendedKalmanFilter(BaseFilter):
         K = self._P @ H.T @ np.linalg.inv(S)                                           # Kalman gain
         self._x = self._x + K @ ytilde                                                 # update state estimate
         self._P = (np.eye(6) - K @ H) @ self._P @ (np.eye(6) - K @ H).T + K @ R @ K.T  # Joseph update
-        return ytilde, S, K
+        
+        return self._x, self._P
