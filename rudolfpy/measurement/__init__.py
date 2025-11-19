@@ -11,3 +11,7 @@ from ._measurement_angles import (
     get_perturbation_T,
 
 )
+
+from ._measurement_optical import (
+    MeasurementOptical
+)
