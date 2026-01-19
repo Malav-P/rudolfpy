@@ -3,7 +3,7 @@ package:
   version: 0.1.1
 
 source:
-  git_url: https://github.gatech.edu/SSOG/python-filter.git
+  git_url: https://github.com/Malav-P/rudolfpy.git
   git_rev: development
 
 build:
