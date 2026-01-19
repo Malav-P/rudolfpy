@@ -11,7 +11,7 @@ from ._eom_cr3bp import rhs_cr3bp, rhs_cr3bp_with_stm
 
 class DynamicsCR3BP(BaseDynamics):
     """CR3BP dynamics class"""
-    def __init__(self, mu, method="DOP853", rtol=1.e-13, atol=1.e-13):
+    def __init__(self, mu, LU, TU, method="DOP853", rtol=1.e-13, atol=1.e-13):
         """Constructor
         
         Args:
@@ -20,6 +20,7 @@ class DynamicsCR3BP(BaseDynamics):
             rtol (float): relative tolerance
             atol (float): absolute tolerance
         """
+        super().__init__(None, LU, TU)
         self.mu = mu
         self.method = method
         self.rtol = rtol

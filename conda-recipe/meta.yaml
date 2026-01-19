@@ -1,0 +1,25 @@
+package:
+  name: rudolfpy
+  version: 0.1.1
+
+source:
+  git_url: https://github.com/Malav-P/rudolfpy.git
+  git_rev: development
+
+build:
+  noarch: python 
+  script: {{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - pip
+    - setuptools
+    - python
+    - git
+  run:
+    - numpy
+    - matplotlib
+    - numba
+    - scipy
+    - tqdm
+

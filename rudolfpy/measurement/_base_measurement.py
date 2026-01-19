@@ -3,6 +3,7 @@
 class BaseMeasurement:
     def __init__(self):
         self.name = "BaseMeasurement"
+        self.measurement_dim = None # derived classes must set this value
         return
     
     def predict_measurement(self, t, x):

@@ -25,6 +25,7 @@ del hard_dependencies, dependency, missing_dependencies
 # Imports
 from .dynamics import *
 from .measurement import *
-from ._base_filter import BaseFilter, unbiased_random_process_3dof
+from ._base_filter import BaseFilter, unbiased_random_process_3dof 
 from ._ekf import ExtendedKalmanFilter
-from ._recurse_filter import Recursor
+from ._ukf import UnscentedKalmanFilter
+from ._recurse_filter import _get_state_history_filter, plot_state_history

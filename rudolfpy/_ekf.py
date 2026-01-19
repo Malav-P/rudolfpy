@@ -1,6 +1,8 @@
 """EKF object"""
 
 import numpy as np
+from numpy.typing import ArrayLike
+from typing import Optional
 
 from ._base_filter import BaseFilter
 
@@ -18,15 +20,16 @@ class ExtendedKalmanFilter(BaseFilter):
         dynamics,
         measurement_model,
         func_process_noise,
-        params_Q,
+        params_Q = [1e-5]
     ):
         super().__init__(
             dynamics = dynamics,
             measurement_model = measurement_model,
             func_process_noise = func_process_noise,
-            params_Q = params_Q,
+            params_Q = params_Q
         )
         self.name = "ExtendedKalmanFilter"
+
         return
 
     def summary(self):
@@ -35,39 +38,65 @@ class ExtendedKalmanFilter(BaseFilter):
         print(f"   Process noise model : {self.func_process_noise.__name__}")
         print(f"   Measurement model : {self.measurement_model.name}")
         return
+
+    def initialize(self,
+                   t: float,
+                   x0: np.ndarray[float],
+                   P0: np.ndarray[float]):
+
+        """
+        Initialize the EKF
+
+        Args:
+            t (float): time
+            x0 (np.ndarray[float]): initial state estimate
+            P0 (np.ndarray[float]): initial covariance
+
+        
+        """
+        self._t = t
+        self._x = x0
+        self._P = P0
     
-    def predict(self, tspan, t_eval = None, events = None):
+    def predict(self,
+                tspan: ArrayLike):
+                
         """Perform time prediction
         
         Args:
-            tspan (tuple): time span for prediction
-            t_eval (np.ndarray): time points to evaluate solution
-            events (list): list of callables to prematurely end integration, defaults to None
+            tspan (ArrayLike): 2-tuple time span for prediction
         
         Returns:
-            (ODESolution): solution object (state and STM)
+            x, P (tuple) : tuple of ndarray giving the state, covariance pair
         """
         # perform prediction of state
-        sol_stm = self.dynamics.solve(tspan, self._x, stm=True, t_eval = t_eval, events = events)
-        self._x = sol_stm.y[:self.nx,-1]                                    # propagate state
-        Phi = sol_stm.y[self.nx:, -1].reshape(self.nx,self.nx)
+        sol_stm = self.dynamics.solve(tspan, self._x, stm=True)
+        self._x = sol_stm.y[:6,-1]                                    # propagate state
+        Phi = sol_stm.y[6:, -1].reshape(6,6)
         Q = self.func_process_noise(tspan, self.x, self.params_Q)     # process noise
         self._P = Phi @ self._P @ Phi.T + Q                           # propagate covariance
-        self._t += sol_stm.t[-1] - sol_stm.t[0]                       # propagate time
-        return sol_stm
+        self._t += tspan[1] - tspan[0]                                # propagate time
+
+        return self._x, self._P
     
-    def update(self, y, R, params = None):
+    def update(self,
+               y: np.ndarray[float],
+               R: np.ndarray[float],
+               params: Optional[list] = None):
+
         """Perform measurement update
         
         Args:
-            y (np.ndarray): measurement vector
-            R (np.ndarray): measurement covariance matrix
+            y (np.ndarray[float]): measurement vector
+            R (np.ndarray[float]): measurement covariance matrix
+            params (list): params passed to measurement model
 
         Returns:
-            (tuple): innovation, innovation covariance, Kalman gain
+            x, P (tuple) : tuple of ndarray giving the state, covariance pair
         """
+        
         m = len(y)
-        assert R.shape == (m, m), f"R must be of shape ({m},{m})"
+
         # prediction of measurement and measurement partials
         if params is None:
             h = self.measurement_model.predict_measurement(self._t, self._x)
@@ -81,5 +110,6 @@ class ExtendedKalmanFilter(BaseFilter):
         S = H @ self._P @ H.T + R                                                      # innovation covariance
         K = self._P @ H.T @ np.linalg.inv(S)                                           # Kalman gain
         self._x = self._x + K @ ytilde                                                 # update state estimate
-        self._P = (np.eye(self.nx) - K @ H) @ self._P @ (np.eye(self.nx) - K @ H).T + K @ R @ K.T  # Joseph update
-        return ytilde, S, K
+        self._P = (np.eye(6) - K @ H) @ self._P @ (np.eye(6) - K @ H).T + K @ R @ K.T  # Joseph update
+        
+        return self._x, self._P
