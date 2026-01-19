@@ -5,9 +5,19 @@ Generic filter implementations in python, named after Rufolf E. Kálmán himself
 Note: [`FilterPy`](https://filterpy.readthedocs.io/en/latest/) is a "pedalogical" tool, and may compromise on performance. In contrast, the filters in this repository are meant to be performant "enough" for the purpose of doing research.
 
 
-### Dependencies:
+### Installation
 
-- numpy, matplotlib, numba, scipy, tqdm
+#### Conda
+```
+conda install malavp::rudolfpy
+```
+
+#### From Source
+```
+git clone https://github.com/Malav-P/rudolfpy.git
+cd rudolfpy
+pip install .
+```
 
 
 ## Quick start
