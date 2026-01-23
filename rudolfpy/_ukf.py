@@ -126,11 +126,6 @@ class UnscentedKalmanFilter(BaseFilter):
 
         z, Pzz = self.compute_mean_and_covariances(z_sigmas)
 
-        #### 
-        residual = (np.linalg.norm(z_measured - z))
-
-        ###
-
         # add measurement noise
         Pzz += R
 
@@ -144,21 +139,6 @@ class UnscentedKalmanFilter(BaseFilter):
         self._x += K @ (z_measured - z)
         self._P -= K @ Pzz @ K.T
 
-        ###
-        # compute sigma pts
-        sigma_pts = self.sigma_points()
-
-        # propagate through measurement model
-        z_sigmas = np.zeros(shape=(self.n_sigma, self.dim_z))
-
-        for i in range(self.n_sigma):
-            z_sigmas[i] = self.h(sigma_pts[i], params = params)
-
-        z, Pzz = self.compute_mean_and_covariances(z_sigmas)
-        residual_post = (np.linalg.norm(z_measured - z))
-
-        print(f"Residual pre-update: {residual:.8f}, post-update: {residual_post:.8f}")
-        ###
 
         return self._x, self._P
 
